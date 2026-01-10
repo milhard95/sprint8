@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"fmt"
 )
 
 type ParcelStore struct {
@@ -38,6 +39,10 @@ func (s ParcelStore) Get(number int) (Parcel, error) {
 	row := s.db.QueryRow("SELECT number, client, status, address, created_at FROM parcel WHERE number = :number", sql.Named("number", number))
 	err := row.Scan(&p.Number, &p.Client, &p.Status, &p.Address, &p.CreatedAt)
 
+	if err != nil {
+		return p, fmt.Errorf("error receiving a parcel by number %w", err)
+	}
+
 	return p, err
 }
 
@@ -47,7 +52,7 @@ func (s ParcelStore) GetByClient(client int) ([]Parcel, error) {
 
 	rows, err := s.db.Query("SELECT number, client, status, address, created_at FROM parcel WHERE client = :client", sql.Named("client", client))
 	if err != nil {
-		return res, err
+		return nil, err
 	}
 	defer rows.Close()
 
@@ -57,11 +62,15 @@ func (s ParcelStore) GetByClient(client int) ([]Parcel, error) {
 
 		err := rows.Scan(&p.Number, &p.Client, &p.Status, &p.Address, &p.CreatedAt)
 		if err != nil {
-			return res, err
+			return nil, err
 		}
 
 		res = append(res, p)
 
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 
 	return res, nil
