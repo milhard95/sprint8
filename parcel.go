@@ -40,7 +40,7 @@ func (s ParcelStore) Get(number int) (Parcel, error) {
 	err := row.Scan(&p.Number, &p.Client, &p.Status, &p.Address, &p.CreatedAt)
 
 	if err != nil {
-		return p, fmt.Errorf("error receiving a parcel by number %w", err)
+		return Parcel{}, fmt.Errorf("error receiving a parcel by number %w", err)
 	}
 
 	return p, err
@@ -84,24 +84,16 @@ func (s ParcelStore) SetStatus(number int, status string) error {
 }
 
 func (s ParcelStore) SetAddress(number int, address string) error {
-	_, err := s.db.Exec("UPDATE parcel SET address = :address WHERE number = :number",
+	_, err := s.db.Exec("UPDATE parcel SET address = :address WHERE number = :number and status = :status",
 		sql.Named("address", address),
-		sql.Named("number", number))
+		sql.Named("number", number),
+		sql.Named("status", ParcelStatusRegistered))
 	return err
 }
 
 func (s ParcelStore) Delete(number int) error {
 
-	parcel, err := s.Get(number)
-
-	if err != nil {
-		return err
-	}
-
-	if parcel.Status != ParcelStatusRegistered {
-		return nil
-	}
-
-	_, err = s.db.Exec("DELETE FROM parcel WHERE number = :number", sql.Named("number", number))
+	_, err := s.db.Exec("DELETE FROM parcel WHERE number = :number and status = :status",
+		sql.Named("number", number), sql.Named("status", ParcelStatusRegistered))
 	return err
 }
